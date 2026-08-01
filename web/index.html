@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Analyse de signal — Détecteur de phishing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div class="scanlines" aria-hidden="true"></div>
+
+<header class="masthead">
+  <div class="masthead__inner">
+    <p class="eyebrow">Analyse de signal · moteur Naive Bayes · C → C++ → Python</p>
+    <h1 class="headline">Ce message essaie-t-il de vous piéger&nbsp;?</h1>
+    <p class="subhead">
+      Collez le texte d'un email ci-dessous. Il sera tokenisé et évalué par le
+      moteur natif compilé (C++/C), pas par une réimplémentation en JavaScript.
+    </p>
+  </div>
+</header>
+
+<main class="console">
+
+  <!-- ===================== PANNEAU D'ENTRÉE ===================== -->
+  <section class="panel panel--input" aria-labelledby="input-title">
+    <div class="panel__header">
+      <span class="panel__label" id="input-title">01 · Signal entrant</span>
+      <span class="panel__meta" id="char-count">0 / 5000</span>
+    </div>
+
+    <div class="input-frame">
+      <textarea
+        id="email-text"
+        class="input-frame__textarea"
+        placeholder="Collez ici le contenu de l'email à analyser…"
+        maxlength="5000"
+        spellcheck="false"
+      ></textarea>
+      <div class="input-frame__sweep" id="sweep" aria-hidden="true"></div>
+    </div>
+
+    <div class="chips" role="group" aria-label="Exemples rapides">
+      <span class="chips__label">Exemples&nbsp;:</span>
+      <button class="chip chip--danger" data-sample="urgent">Urgence compte</button>
+      <button class="chip chip--danger" data-sample="prize">Gain surprise</button>
+      <button class="chip chip--safe" data-sample="meeting">Réunion</button>
+      <button class="chip chip--safe" data-sample="delivery">Livraison</button>
+    </div>
+
+    <button id="analyze-btn" class="analyze-btn" type="button">
+      <span class="analyze-btn__label">Analyser le message</span>
+      <span class="analyze-btn__spinner" aria-hidden="true"></span>
+    </button>
+    <p class="error-msg" id="error-msg" role="alert" hidden></p>
+  </section>
+
+  <!-- ===================== PANNEAU DE VERDICT ===================== -->
+  <section class="panel panel--result" aria-labelledby="result-title">
+    <div class="panel__header">
+      <span class="panel__label" id="result-title">02 · Verdict de l'instrument</span>
+    </div>
+
+    <div class="gauge-wrap">
+      <svg id="gauge" viewBox="0 0 300 175" class="gauge" role="img" aria-label="Jauge de confiance">
+        <defs>
+          <linearGradient id="gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#4FBE8C" />
+            <stop offset="48%" stop-color="#3A4A52" />
+            <stop offset="52%" stop-color="#3A4A52" />
+            <stop offset="100%" stop-color="#C9573F" />
+          </linearGradient>
+        </defs>
+        <path id="gauge-arc" d="M 30 150 A 120 120 0 0 1 270 150" />
+        <g id="gauge-ticks"></g>
+        <text x="30" y="170" class="gauge__zone-label gauge__zone-label--safe">LÉGITIME</text>
+        <text x="270" y="170" class="gauge__zone-label gauge__zone-label--danger" text-anchor="end">PHISHING</text>
+        <g id="needle" class="gauge__needle" style="transform: rotate(0deg);">
+          <line x1="150" y1="150" x2="150" y2="45" />
+        </g>
+        <circle cx="150" cy="150" r="9" class="gauge__pivot" />
+      </svg>
+    </div>
+
+    <div class="verdict" id="verdict">
+      <p class="verdict__label" id="verdict-label">En attente d'un signal</p>
+      <p class="verdict__confidence" id="verdict-confidence">—</p>
+      <p class="verdict__note">Confiance dérivée des log-probabilités du moteur natif</p>
+    </div>
+
+    <dl class="engine-stats" id="engine-stats" aria-label="Statistiques du moteur">
+      <div class="engine-stats__item">
+        <dt>Vocabulaire appris</dt><dd id="stat-vocab">—</dd>
+      </div>
+      <div class="engine-stats__item">
+        <dt>Emails d'entraînement</dt><dd id="stat-dataset">—</dd>
+      </div>
+      <div class="engine-stats__item">
+        <dt>Précision (jeu de test)</dt><dd id="stat-accuracy">—</dd>
+      </div>
+      <div class="engine-stats__item">
+        <dt>F1-score (jeu de test)</dt><dd id="stat-f1">—</dd>
+      </div>
+    </dl>
+  </section>
+
+</main>
+
+<!-- ===================== JOURNAL DE SESSION ===================== -->
+<section class="panel panel--log" aria-labelledby="log-title">
+  <div class="panel__header">
+    <span class="panel__label" id="log-title">03 · Journal de session</span>
+    <button id="clear-log" class="clear-log-btn" type="button">Effacer</button>
+  </div>
+  <ol class="log" id="log-list">
+    <li class="log__empty" id="log-empty">Aucune analyse pour l'instant.</li>
+  </ol>
+</section>
+
+<footer class="pipeline-footer">
+  <p>
+    <span class="pipeline-step">C · tokenizer &amp; table de hachage</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">C++ · modèle Naive Bayes</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">Python · API &amp; orchestration</span>
+    <span class="pipeline-arrow">→</span>
+    <span class="pipeline-step">cette page</span>
+  </p>
+</footer>
+
+<script src="app.js"></script>
+</body>
+</html>
