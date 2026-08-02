@@ -5,6 +5,23 @@ précis et s'appuie sur le précédent. Ce n'est **pas** trois implémentations
 séparées du même algorithme, mais un pipeline unique où Python appelle du
 code C++ compilé, qui lui-même s'appuie sur des primitives C.
 
+## Interface
+
+![Interface](img/interface.png)
+
+---
+
+## Prediction Example
+
+![Prediction](img/legitime.png)
+![Prediction](img/phishing.png)
+
+---
+
+## Training
+
+![Training](img/training.png)
+
 ```
  Python (orchestration, data, évaluation)
      │  ctypes
@@ -17,11 +34,11 @@ code C++ compilé, qui lui-même s'appuie sur des primitives C.
 
 ## Pourquoi cette architecture ?
 
-| Couche | Rôle | Ce qu'elle apporte |
-|---|---|---|
-| **C** (`c/textutils.c`) | Tokenizer + table de hachage (chaînage, hash djb2) | Vitesse brute, pas d'allocations inutiles, structures de données explicites |
-| **C++** (`cpp/naive_bayes.cpp`) | Classe `NaiveBayesModel` : entraînement, log-probabilités, lissage de Laplace | Structure orientée objet au-dessus des primitives C ; expose une API `extern "C"` propre |
-| **Python** (`python/phishing_detector.py`) | Charge la bibliothèque compilée via `ctypes`, gère les données (pandas), le split train/test et les métriques (scikit-learn), et la CLI | Aucune réimplémentation de l'algo : uniquement la couche "data science / UX" |
+| Couche                                     | Rôle                                                                                                                                    | Ce qu'elle apporte                                                                       |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **C** (`c/textutils.c`)                    | Tokenizer + table de hachage (chaînage, hash djb2)                                                                                      | Vitesse brute, pas d'allocations inutiles, structures de données explicites              |
+| **C++** (`cpp/naive_bayes.cpp`)            | Classe `NaiveBayesModel` : entraînement, log-probabilités, lissage de Laplace                                                           | Structure orientée objet au-dessus des primitives C ; expose une API `extern "C"` propre |
+| **Python** (`python/phishing_detector.py`) | Charge la bibliothèque compilée via `ctypes`, gère les données (pandas), le split train/test et les métriques (scikit-learn), et la CLI | Aucune réimplémentation de l'algo : uniquement la couche "data science / UX"             |
 
 Le calcul lourd (tokenisation, comptage de mots, calcul des scores) ne
 tourne **qu'une seule fois**, en code natif. Python ne fait qu'appeler
@@ -56,6 +73,7 @@ phishing_detector/
 ```
 
 Ce script :
+
 1. compile `c/textutils.c` avec `gcc`
 2. compile `cpp/naive_bayes.cpp` avec `g++` (qui inclut le header C)
 3. lie les deux `.o` ensemble dans **une seule** bibliothèque partagée `build/libphishing.so`
