@@ -14,10 +14,29 @@ The project combines:
 - **C** for high-performance text processing
 - **C++** for the Naive Bayes machine learning engine
 - **Python** for orchestration, evaluation and REST API
-- **Flask** for the web backend
-- **HTML/CSS/JavaScript** for the user interface
+- **Flask** for the backend
+- **HTML / CSS / JavaScript** for the user interface
 
-Rather than implementing the same algorithm three times, the project follows a **single execution pipeline**, where every language has a dedicated responsibility.
+Instead of implementing the algorithm multiple times, this project follows a **single execution pipeline**, where every language has a dedicated responsibility.
+
+---
+
+# 📑 Table of Contents
+
+- [🌐 Live Demo](#-live-demo)
+- [🎥 Video Demo](#-video-demo)
+- [📷 Screenshots](#-screenshots)
+- [🏗️ Global Architecture](#️-global-architecture)
+- [📖 Why this architecture?](#-why-this-architecture)
+- [🛠️ Technologies](#️-technologies)
+- [📂 Project Structure](#-project-structure)
+- [⚙️ Installation](#️-installation)
+- [🧠 Machine Learning Pipeline](#-machine-learning-pipeline)
+- [🔌 Native API](#-native-api)
+- [🌐 Web Interface](#-web-interface)
+- [📊 Dataset](#-dataset)
+- [🚀 Future Improvements](#-future-improvements)
+- [👨‍💻 Author](#-author)
 
 ---
 
@@ -27,22 +46,50 @@ The static interface is available here:
 
 **https://amine-navas.github.io/phishing_detector/**
 
-> ⚠️ GitHub Pages only hosts the frontend.
-> Real-time predictions require the Flask backend running locally.
+> ⚠️ GitHub Pages hosts only the frontend.
+> Real-time predictions require the Flask backend (Python + C/C++) running locally.
+
+---
+
+# 🎥 Video Demo
+
+Watch the application in action:
+
+▶ **[Demo Video](img/test.mp4)**
+
+> GitHub does not embed MP4 videos directly inside README files. Click the link above to watch or download the demonstration.
 
 ---
 
 # 📷 Screenshots
 
-## Interface/test
+## Main Interface
 
-![Interface](img/test.mp4)
+![Interface](img/interface.png)
+
+---
+
+## Legitimate Email Detection
+
+![Legitimate](img/legitime.png)
+
+---
+
+## Phishing Email Detection
+
+![Phishing](img/phishing.png)
+
+---
+
+## Training
+
+![Training](img/training.png)
 
 ---
 
 # 🏗️ Global Architecture
 
-```
+```text
              HTML / CSS / JavaScript
                      │
                  HTTP (JSON)
@@ -64,16 +111,33 @@ The static interface is available here:
 
 # 📖 Why this architecture?
 
-| Layer          | Responsibility                                      |
-| -------------- | --------------------------------------------------- |
-| **C**          | Tokenization, hash table, word counting             |
-| **C++**        | Naive Bayes model, probabilities, prediction        |
-| **Python**     | Dataset loading, training, evaluation, REST API     |
-| **Flask**      | Communication between browser and prediction engine |
-| **JavaScript** | Interactive user interface                          |
+| Layer          | Responsibility                                            |
+| -------------- | --------------------------------------------------------- |
+| **C**          | Tokenization, hash table, word counting                   |
+| **C++**        | Naive Bayes model, probability computation and prediction |
+| **Python**     | Dataset loading, training, evaluation and REST API        |
+| **Flask**      | Communication between browser and prediction engine       |
+| **JavaScript** | Interactive frontend                                      |
 
-The heavy computations are executed only once inside native code (C/C++).
-Python simply orchestrates the workflow using **ctypes**.
+The computationally intensive operations are executed once inside native C/C++ code.
+
+Python acts as the orchestration layer using **ctypes**, avoiding any algorithm reimplementation.
+
+---
+
+# 🛠️ Technologies
+
+- C11
+- C++17
+- Python 3
+- Flask
+- HTML5
+- CSS3
+- JavaScript (ES6)
+- ctypes
+- scikit-learn
+- Git
+- GitHub Pages
 
 ---
 
@@ -101,6 +165,13 @@ phishing_detector/
 │   ├── style.css
 │   └── app.js
 │
+├── img/
+│   ├── interface.png
+│   ├── legitime.png
+│   ├── phishing.png
+│   ├── training.png
+│   └── test.mp4
+│
 ├── emails.csv
 ├── build.sh
 └── README.md
@@ -110,25 +181,25 @@ phishing_detector/
 
 # ⚙️ Installation
 
-## Build the native library
+## 1. Build the native library
 
 ```bash
 ./build.sh
 ```
 
-This compiles
+This script:
 
-- C source code
-- C++ source code
-- links both into
+- Compiles the C source code
+- Compiles the C++ source code
+- Links both into
 
-```
+```text
 build/libphishing.so
 ```
 
 ---
 
-## Install Python dependencies
+## 2. Install dependencies
 
 ```bash
 pip install flask pandas scikit-learn
@@ -136,16 +207,16 @@ pip install flask pandas scikit-learn
 
 ---
 
-## Launch the web server
+## 3. Launch the backend
 
 ```bash
 cd python
 python server.py
 ```
 
-Open
+Open:
 
-```
+```text
 http://localhost:5000
 ```
 
@@ -153,9 +224,9 @@ http://localhost:5000
 
 # 🧠 Machine Learning Pipeline
 
-Training:
+## Training
 
-```
+```text
 Dataset
     │
     ▼
@@ -171,9 +242,9 @@ Naive Bayes (C++)
 Probability Model
 ```
 
-Prediction:
+## Prediction
 
-```
+```text
 Email
    │
    ▼
@@ -224,15 +295,15 @@ The API is exported with
 extern "C"
 ```
 
-allowing Python to access the compiled library through **ctypes**.
+allowing Python to communicate directly with the compiled library through **ctypes**.
 
 ---
 
 # 🌐 Web Interface
 
-The browser communicates with Flask using a REST API.
+The browser communicates with Flask through a REST API.
 
-```
+```text
 Browser
       │
  POST /api/predict
@@ -247,50 +318,52 @@ Python Engine
 Native C++ Library
 ```
 
-Features include:
+### Features
 
 - Real-time phishing detection
-- Interactive gauge
+- Animated gauge
 - Confidence score
 - Training statistics
 - Session history
+- Responsive interface
 
 ---
 
 # 📊 Dataset
 
-The project uses a balanced dataset of
+The project uses a balanced dataset containing:
 
 - 90 phishing emails
 - 90 legitimate emails
 
 stored in
 
-```
+```text
 emails.csv
 ```
 
-The format is
+Format:
 
-```
+```text
 label|email_text
 ```
 
-It can easily be replaced with a larger public phishing dataset.
+The dataset can easily be replaced with a larger public phishing dataset.
 
 ---
 
 # 🚀 Future Improvements
 
-- Model persistence (save/load)
-- TF-IDF features
-- URL analysis
-- Header analysis
+- Save/load trained models
+- TF-IDF support
+- URL feature extraction
+- Email header analysis
 - Logistic Regression implementation
 - pybind11 bindings
 - Docker deployment
-- User authentication
-- Email attachment analysis
+- Authentication system
+- Attachment analysis
+- Deep learning models
 
 ---
 
@@ -300,4 +373,9 @@ It can easily be replaced with a larger public phishing dataset.
 
 Software Engineering Student
 
-Cybersecurity • Machine Learning • Systems Programming
+**Interests**
+
+- Cybersecurity
+- Machine Learning
+- Systems Programming
+- Software Engineering
