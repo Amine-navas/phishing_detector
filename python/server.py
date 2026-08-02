@@ -34,7 +34,10 @@ except ImportError as exc:
         "from the phishing_detecteur directory."
     ) from exc
 
-from phishing_detecteur.python.phishing_detector import PhishingEngine, load_data  # code existant, non modifié
+if __package__ in {None, ""}:
+    from phishing_detector import PhishingEngine, load_data
+else:
+    from .phishing_detector import PhishingEngine, load_data
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 WEB_DIR = os.path.join(HERE, "..", "web")
@@ -71,7 +74,12 @@ def _bootstrap():
     return engine, stats
 
 
-engine, STATS = _bootstrap()
+try:
+    engine, STATS = _bootstrap()
+except Exception as exc:
+    engine = None
+    STATS = {"error": str(exc)}
+    print(f"Initialisation du moteur impossible : {exc}")
 
 
 @app.route("/")
@@ -92,6 +100,9 @@ def predict():
         return jsonify({"error": "Le texte de l'email est vide."}), 400
     if len(text) > 5000:
         return jsonify({"error": "Texte trop long (5000 caractères max)."}), 400
+
+    if engine is None:
+        return jsonify({"error": "Le moteur n'est pas initialisé. Vérifiez la bibliothèque native et le dataset.(lance le serveur d'abord)"}), 500
 
     label, confidence = engine.predict(text)  # méthode déjà fournie, non modifiée
     return jsonify({

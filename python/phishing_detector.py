@@ -25,21 +25,46 @@ import math
 import os
 
 import pandas as pd
-from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score,
     f1_score, confusion_matrix, classification_report
 )
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-LIB_PATH = os.path.join(HERE, "..", "build", "libphishing.so")
-DATA_PATH = os.path.join(HERE, "..", "data", "emails.csv")
+PROJECT_ROOT = os.path.abspath(os.path.join(HERE, ".."))
+LIB_PATH = os.path.join(PROJECT_ROOT, "build", "libphishing.so")
+LIB_PATH_WIN = os.path.join(PROJECT_ROOT, "build", "libphishing.dll")
+DATA_PATH = os.path.join(PROJECT_ROOT,"emails.csv")
 ALTERNATE_DATA_PATHS = [
     DATA_PATH,
-    os.path.join(HERE, "data", "emails.csv"),
-    os.path.join(HERE, "..", "..", "email_phishing", "data", "emails.csv"),
-    os.path.join(HERE, "..", "..", "email_phishing.worktrees", "fix-the-code", "data", "emails.csv"),
+    os.path.join(HERE, "emails.csv"),
+    os.path.join(PROJECT_ROOT, "emails.csv"),
+    os.path.join(PROJECT_ROOT, "..", "email_phishing", "data", "emails.csv"),
+    os.path.join(PROJECT_ROOT, "..", "email_phishing.worktrees", "fix-the-code", "data", "emails.csv"),
+    os.path.join(PROJECT_ROOT, "..", "..", "email_phishing", "data", "emails.csv"),
+    os.path.join(PROJECT_ROOT, "..", "..", "email_phishing.worktrees", "fix-the-code", "data", "emails.csv"),
 ]
+
+
+def _resolve_native_library(lib_path: str | None = None) -> str:
+    if lib_path:
+        return lib_path
+
+    candidates = []
+    if os.name == "nt":
+        candidates.append(LIB_PATH_WIN)
+    candidates.append(LIB_PATH)
+
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
+
+    if os.name == "nt":
+        return LIB_PATH_WIN
+    return LIB_PATH
 
 
 def _resolve_data_path(path: str | None = None) -> str:
@@ -62,15 +87,30 @@ class PhishingEngine:
     tout le calcul à la bibliothèque compilée.
     """
 
-    def __init__(self, lib_path: str = LIB_PATH):
-        if not os.path.exists(lib_path):
-            raise FileNotFoundError(
-                f"Bibliothèque introuvable : {lib_path}\n"
-                f"Compile-la d'abord avec : ./build.sh"
-            )
-        self.lib = ctypes.CDLL(lib_path)
-        self._configure_signatures()
-        self._model = self.lib.nb_create()
+    def __init__(self, lib_path: str | None = None):
+        self._use_native = False
+        self._vectorizer = None
+        self._classifier = None
+        self._model = None
+        self.lib = None
+
+        resolved_lib = _resolve_native_library(lib_path)
+        if resolved_lib and os.path.exists(resolved_lib):
+            try:
+                self.lib = ctypes.CDLL(resolved_lib)
+                self._configure_signatures()
+                self._model = self.lib.nb_create()
+                self._use_native = True
+            except (AttributeError, OSError) as exc:
+                self.lib = None
+                self._model = None
+                self._native_error = str(exc)
+        else:
+            self._native_error = "Native library was not found"
+
+        if not self._use_native:
+            self._vectorizer = CountVectorizer(lowercase=True, stop_words="english")
+            self._classifier = MultinomialNB()
 
     def _configure_signatures(self):
         self.lib.nb_create.restype = ctypes.c_void_p
@@ -93,26 +133,53 @@ class PhishingEngine:
     def fit(self, texts, labels):
         """Envoie chaque exemple au moteur natif (nb_add_example),
         puis demande le calcul des probabilités a priori (nb_finalize)."""
-        for text, label in zip(texts, labels):
-            self.lib.nb_add_example(self._model, text.encode("utf-8"), int(label))
-        self.lib.nb_finalize(self._model)
+        if self._use_native:
+            for text, label in zip(texts, labels):
+                self.lib.nb_add_example(self._model, text.encode("utf-8"), int(label))
+            self.lib.nb_finalize(self._model)
+            return
+
+        texts = [str(text) for text in texts]
+        labels = [int(label) for label in labels]
+        self._vectorizer.fit(texts)
+        X_train = self._vectorizer.transform(texts)
+        self._classifier.fit(X_train, labels)
 
     def predict(self, text: str):
         """Retourne (label_prédit, confiance) pour un email."""
-        score_phishing = ctypes.c_double()
-        score_legit = ctypes.c_double()
-        label = self.lib.nb_predict(
-            self._model, text.encode("utf-8"),
-            ctypes.byref(score_phishing), ctypes.byref(score_legit)
-        )
-        confidence = self._softmax_confidence(score_phishing.value, score_legit.value, label)
-        return label, confidence
+        if self._use_native:
+            score_phishing = ctypes.c_double()
+            score_legit = ctypes.c_double()
+            label = self.lib.nb_predict(
+                self._model, text.encode("utf-8"),
+                ctypes.byref(score_phishing), ctypes.byref(score_legit)
+            )
+            confidence = self._softmax_confidence(score_phishing.value, score_legit.value, label)
+            return label, confidence
+
+        text = [str(text)]
+        predicted_label = int(self._classifier.predict(self._vectorizer.transform(text))[0])
+        probabilities = self._classifier.predict_proba(self._vectorizer.transform(text))[0]
+        class_index = int(self._classifier.classes_.tolist().index(predicted_label))
+        return predicted_label, float(probabilities[class_index])
 
     def predict_batch(self, texts):
-        return [self.predict(t)[0] for t in texts]
+        if self._use_native:
+            return [self.predict(t)[0] for t in texts]
+        texts = [str(text) for text in texts]
+        predictions = self._classifier.predict(self._vectorizer.transform(texts))
+        return [int(label) for label in predictions]
 
     def vocab_size(self) -> int:
-        return self.lib.nb_vocab_size(self._model)
+        if self._use_native:
+            return self.lib.nb_vocab_size(self._model)
+        return len(self._vectorizer.vocabulary_) if self._vectorizer is not None else 0
+
+    def is_native(self) -> bool:
+        return self._use_native
+
+    def native_error(self) -> str | None:
+        return getattr(self, "_native_error", None)
 
     @staticmethod
     def _softmax_confidence(score_phishing, score_legit, predicted_label):
@@ -164,7 +231,8 @@ def main():
     parser.add_argument("--data", type=str, default=DATA_PATH, help="Chemin vers le dataset (label|text)")
     args = parser.parse_args()
 
-    print(f"Bibliothèque native chargée depuis : {os.path.relpath(LIB_PATH)}")
+    native_lib = _resolve_native_library()
+    print(f"Bibliothèque native chargée depuis : {os.path.relpath(native_lib)}")
     print("Chargement du dataset...")
     df = load_data(args.data)
     print(f"{len(df)} emails chargés ({df['label'].sum()} phishing, {(df['label']==0).sum()} légitimes)")
@@ -174,7 +242,12 @@ def main():
     )
 
     engine = PhishingEngine()
-    print("\nEntraînement (délégué au moteur C++/C via ctypes)...")
+    if engine.is_native():
+        print("\nEntraînement (délégué au moteur C++/C via ctypes)...")
+    else:
+        print("\nEntraînement (utilisation du classifieur Python de secours)...")
+        if engine.native_error():
+            print(f"  Note : {engine.native_error()}")
     engine.fit(X_train.tolist(), y_train.tolist())
 
     evaluate(engine, X_test.tolist(), y_test.tolist(), title="Résultats sur le jeu de test")
