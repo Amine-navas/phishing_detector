@@ -1,5 +1,14 @@
 # Phishing Email Detector — pipeline C / C++ / Python
 
+## 🌐 Live Demo
+
+L'interface de démonstration est disponible ici :
+
+**https://amine-navas.github.io/phishing_detector/**
+
+> ⚠️ Cette version est une démonstration statique de l'interface.
+> Les prédictions en temps réel nécessitent le backend Flask (Python + C/C++) exécuté localement.
+
 Un seul détecteur de phishing, construit en couches : chaque langage a un rôle
 précis et s'appuie sur le précédent. Ce n'est **pas** trois implémentations
 séparées du même algorithme, mais un pipeline unique où Python appelle du
