@@ -34,9 +34,11 @@ The static interface is available here:
 
 # 📷 Screenshots
 
-## Interface , prediction et tout
+## Interface/test
 
-[!Prediction](img/WhatsApp%20Video%202026-08-02%20at%2021.32.56.mp4)
+![Interface](img/test.mp4)
+
+---
 
 # 🏗️ Global Architecture
 
