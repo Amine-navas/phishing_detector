@@ -1,5 +1,3 @@
-# Phishing Email Detector — pipeline C / C++ / Python
-
 ## 🌐 Live Demo
 
 L'interface de démonstration est disponible ici :
@@ -13,6 +11,8 @@ Un seul détecteur de phishing, construit en couches : chaque langage a un rôle
 précis et s'appuie sur le précédent. Ce n'est **pas** trois implémentations
 séparées du même algorithme, mais un pipeline unique où Python appelle du
 code C++ compilé, qui lui-même s'appuie sur des primitives C.
+
+# Phishing Email Detector — pipeline C / C++ / Python
 
 ## Interface
 
