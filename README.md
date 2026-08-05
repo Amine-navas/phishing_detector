@@ -371,7 +371,7 @@ The dataset can easily be replaced with a larger public phishing dataset.
 
 **Amine Aymen Senbati**
 
-Software Engineering Student
+Etudiant en Cybersécurité.
 
 **Interests**
 
