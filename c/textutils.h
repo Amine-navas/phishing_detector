@@ -23,4 +23,4 @@ int ht_vocab_size(const HashTable *ht);
 }
 #endif
 
-#endif /* TEXTUTILS_H */
+#endif
