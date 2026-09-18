@@ -15,13 +15,7 @@ int tokenize(const char *text, char tokens[][MAX_WORD], int max_tokens)
     for (const char *p = text;; p++)
     {
         unsigned char c = (unsigned char)*p;
-        /* Un octet >= 0x80 appartient à une séquence UTF-8 multioctet (lettres
-           accentuées : é, è, à, ç...). isalnum() ne le reconnaît pas en locale
-           "C" ; sans ce cas, chaque lettre accentuée casserait le mot en deux
-           (ex. "vérifier" -> "rifier", "été" -> disparaît entièrement). On le
-           garde donc tel quel comme caractère de mot, sans tenter de le
-           mettre en minuscule (pas de repli sûr et portable sans passer par
-           les wide chars). */
+        
         if (isalnum(c) || c >= 0x80)
         {
             if (clen < MAX_WORD - 1)
