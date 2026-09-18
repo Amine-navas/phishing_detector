@@ -5,7 +5,6 @@
 
 #define HASH_SIZE 4096
 
-/* ---------- Tokenizer ---------- */
 
 int tokenize(const char *text, char tokens[][MAX_WORD], int max_tokens)
 {
@@ -43,7 +42,6 @@ int tokenize(const char *text, char tokens[][MAX_WORD], int max_tokens)
     return n;
 }
 
-/* ---------- Table de hachage ---------- */
 
 typedef struct WordEntry
 {
